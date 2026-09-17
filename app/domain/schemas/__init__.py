@@ -1,4 +1,3 @@
-# app/domain/schemas/__init__.py
 from app.domain.schemas.material import (
     MaterialCreate,
     MaterialResponse,

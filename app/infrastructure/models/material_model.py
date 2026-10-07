@@ -12,6 +12,7 @@ class MaterialORM(Base):
     """
 
     __tablename__ = "materials"
+    __table_args__ = {'extend_existing': True}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     code: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)

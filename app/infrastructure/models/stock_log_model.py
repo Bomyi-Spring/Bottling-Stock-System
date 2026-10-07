@@ -16,6 +16,7 @@ class StockLogORM(Base):
     """
 
     __tablename__ = "stock_logs"
+    __table_args__ = {'extend_existing': True}
 
     # UUID Primary Key
     id: Mapped[uuid.UUID] = mapped_column(

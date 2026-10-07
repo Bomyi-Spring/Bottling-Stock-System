@@ -16,6 +16,7 @@ class ProductORM(Base):
     """
 
     __tablename__ = "products"
+    __table_args__ = {'extend_existing': True}
 
     # UUID Primary Key
     id: Mapped[uuid.UUID] = mapped_column(

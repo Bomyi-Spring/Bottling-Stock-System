@@ -25,6 +25,7 @@ class InsufficientStockException(DomainException):
         )
 
 
+
 # ==========================================
 # 2. 완제품(Product) 관련 예외
 # ==========================================
@@ -41,3 +42,15 @@ class DuplicateSKUException(DomainException):
     def __init__(self, sku: str):
         self.sku = sku
         super().__init__(f"이미 존재하는 SKU 코드입니다: '{sku}'")
+
+        
+
+ # ==========================================
+# 3. 재고 이력(StockLog) 관련 예외
+# ==========================================
+
+class StockLogNotFoundException(DomainException):
+    """재고 변동 이력을 찾을 수 없을 때 발생"""
+    def __init__(self, log_id: int):
+        self.log_id = log_id
+        super().__init__(f"ID가 {log_id}인 재고 변동 이력을 찾을 수 없습니다.")

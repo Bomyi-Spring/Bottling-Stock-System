@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
-from app.domain.entities.stock_log import StockLog
+from app.domain.models.stock_log import StockLog
 
 
 class StockLogRepositoryInterface(ABC):

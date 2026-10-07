@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Optional
 from uuid import UUID
 
-from app.domain.entities.product import Product
+from app.domain.models.product import Product
 
 
 class ProductRepositoryInterface(ABC):

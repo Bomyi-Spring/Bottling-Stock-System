@@ -4,6 +4,7 @@ from app.domain.schemas.material import MaterialCreate, MaterialUpdate
 from app.domain.exceptions import (
     MaterialNotFoundException,
     DuplicateSKUException,
+    InsufficientStockException,
 )
 from app.domain.repository_interfaces.material_repository import (
     MaterialRepositoryInterface,
@@ -16,7 +17,7 @@ class MaterialService:
     """
 
     def __init__(self, material_repo: MaterialRepositoryInterface):
-        # 의존성 주입(Dependency Injection): 
+        # 의존성 주입(Dependency Injection):
         # 구체적인 DB 리포지토리가 아닌 인터페이스에 의존합니다.
         self.material_repo = material_repo
 
@@ -54,6 +55,36 @@ class MaterialService:
         전체 원자재 목록을 페이징하여 조회합니다.
         """
         return await self.material_repo.get_all(skip=skip, limit=limit)
+
+    # ---- API 엔드포인트(materials.py)가 부르는 이름들 ----
+
+    async def list_materials(self, skip: int = 0, limit: int = 100) -> List[Material]:
+        return await self.get_all_materials(skip=skip, limit=limit)
+
+    async def get_material(self, material_id: int) -> Optional[Material]:
+        """없으면 None을 반환합니다. (API가 404로 변환)"""
+        return await self.material_repo.get_by_id(material_id)
+
+    async def adjust_stock(
+        self, material_id: int, quantity_change: float, reason: str
+    ) -> Material:
+        """
+        재고를 증감합니다. (양수: 입고, 음수: 출고)
+        - 결과 재고가 음수가 되면 InsufficientStockException 발생
+        - reason은 아직 저장하지 않습니다. (재고 이력 기능은 추후 연결)
+        """
+        material = await self.get_material_by_id(material_id)
+        new_stock = material.current_stock + quantity_change
+        if new_stock < 0:
+            raise InsufficientStockException(
+                target_name=material.name,
+                current_stock=material.current_stock,
+                required_stock=abs(quantity_change),
+            )
+        material.current_stock = new_stock
+        return await self.material_repo.save(material)
+
+    # ------------------------------------------------------
 
     async def add_stock(self, material_id: int, amount: float) -> Material:
         """

@@ -3,6 +3,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from app.api.deps import get_material_service
+from app.domain.exceptions import (
+    DuplicateSKUException,
+    InsufficientStockException,
+    MaterialNotFoundException,
+)
 from app.services.material_service import MaterialService
 
 
@@ -53,15 +58,10 @@ async def create_material(
     신규 원자재를 등록합니다.
     """
     try:
-        material = await service.create_material(
-            code=payload.code,
-            name=payload.name,
-            category=payload.category,
-            current_stock=payload.current_stock,
-            safety_stock=payload.safety_stock,
-            unit=payload.unit,
-        )
-        return material
+        # service.create_material은 개별 인자가 아닌 schema(또는 payload) 객체를 전달받습니다.
+        return await service.create_material(payload)
+    except DuplicateSKUException as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -110,14 +110,17 @@ async def adjust_stock(
             quantity_change=payload.quantity_change,
             reason=payload.reason,
         )
-        if not updated_material:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Material with ID {material_id} not found",
-            )
-        return updated_material
-    except ValueError as e:
+    except MaterialNotFoundException as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except (ValueError, InsufficientStockException) as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    if not updated_material:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Material with ID {material_id} not found",
+        )
+    return updated_material
 
 
 @router.delete("/{material_id}", status_code=status.HTTP_204_NO_CONTENT)

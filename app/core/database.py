@@ -2,8 +2,10 @@ from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import declarative_base
 
-# PostgreSQL 접속 정보 (환경에 맞게 호스트, 계정 정보가 설정됩니다)
-DATABASE_URL = "postgresql+psycopg://postgres:password@localhost:5432/bottling_db"
+from app.core.config import settings
+
+# 접속 주소는 config.py(.env)에서 가져옵니다
+DATABASE_URL = settings.DATABASE_URL
 
 # 1. Async Engine 생성
 engine = create_async_engine(
@@ -30,3 +32,4 @@ Base = declarative_base()
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
         yield session
+        

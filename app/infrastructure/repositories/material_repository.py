@@ -36,7 +36,7 @@ class SqlAlchemyMaterialRepository(MaterialRepositoryInterface):
             return None
         return orm_material.to_domain()
 
-    async def list_all(self, skip: int = 0, limit: int = 100) -> List[Material]:
+    async def get_all(self, skip: int = 0, limit: int = 100) -> List[Material]:
         """
         전체 원자재 목록을 페이징(skip, limit) 처리하여 조회합니다.
         """
@@ -62,13 +62,13 @@ class SqlAlchemyMaterialRepository(MaterialRepositoryInterface):
                 existing_orm.safety_stock = material.safety_stock
                 existing_orm.unit = material.unit
                 # flush를 통해 세션 내 반영 후 도메인 객체로 변환해 반환
-                await self.session.flush()
+                await self.session.commit()
                 return existing_orm.to_domain()
 
         # 신규 등록
         new_orm = MaterialORM.from_domain(material)
         self.session.add(new_orm)
-        await self.session.flush()  # DB에 전송하여 자동 생성된 ID값 확보
+        await self.session.commit()  # DB에 전송하여 자동 생성된 ID값 확보
         await self.session.refresh(new_orm)
         return new_orm.to_domain()
 

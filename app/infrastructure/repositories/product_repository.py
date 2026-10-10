@@ -68,6 +68,33 @@ class SqlAlchemyProductRepository(ProductRepositoryInterface):
         await self.session.refresh(new_orm)
         return new_orm.to_domain()
 
+    async def update_stock(self, product_id: UUID, quantity_change: int) -> Optional[Product]:
+        """
+        상품의 재고 수량을 변경합니다. (양수: 입고, 음수: 출고)
+        - 행 잠금(SELECT ... FOR UPDATE)으로 동시 요청 시 재고 경합을 방지합니다.
+        - 변경 후 재고가 음수가 되면 ValueError를 발생시킵니다.
+        """
+        stmt = (
+            select(ProductORM)
+            .where(ProductORM.id == product_id)
+            .with_for_update()
+        )
+        result = await self.session.execute(stmt)
+        orm_product = result.scalars().first()
+        if not orm_product:
+            return None
+
+        new_stock = orm_product.current_stock + quantity_change
+        if new_stock < 0:
+            raise ValueError(
+                f"재고가 부족합니다. (현재: {orm_product.current_stock}, 변경: {quantity_change})"
+            )
+
+        orm_product.current_stock = new_stock
+        await self.session.flush()
+        await self.session.refresh(orm_product)
+        return orm_product.to_domain()
+
     async def delete(self, product_id: UUID) -> bool:
         """
         UUID로 완제품 레코드를 삭제합니다.

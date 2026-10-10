@@ -1,3 +1,7 @@
+
+
+
+
 class DomainException(Exception):
     """도메인 계층 최상위 기본 예외 클래스"""
     pass
@@ -43,7 +47,7 @@ class DuplicateSKUException(DomainException):
         self.sku = sku
         super().__init__(f"이미 존재하는 SKU 코드입니다: '{sku}'")
 
-        
+
 
  # ==========================================
 # 3. 재고 이력(StockLog) 관련 예외

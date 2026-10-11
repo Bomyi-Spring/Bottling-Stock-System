@@ -1,6 +1,7 @@
 from typing import List, Optional
 from app.domain.models.material import Material
 from app.domain.schemas.material import MaterialCreate, MaterialUpdate
+from app.domain.schemas.stock_log import StockLogCreate
 from app.domain.exceptions import (
     MaterialNotFoundException,
     DuplicateSKUException,
@@ -16,10 +17,15 @@ class MaterialService:
     원자재(Material) 관련 비즈니스 유스케이스를 처리하는 어플리케이션 서비스
     """
 
-    def __init__(self, material_repo: MaterialRepositoryInterface):
+    def __init__(
+        self,
+        material_repo: MaterialRepositoryInterface,
+        stock_log_service=None,  # 재고 이력 기록용
+    ):
         # 의존성 주입(Dependency Injection):
         # 구체적인 DB 리포지토리가 아닌 인터페이스에 의존합니다.
         self.material_repo = material_repo
+        self.stock_log_service = stock_log_service
 
     async def create_material(self, schema: MaterialCreate) -> Material:
         """
@@ -71,7 +77,7 @@ class MaterialService:
         """
         재고를 증감합니다. (양수: 입고, 음수: 출고)
         - 결과 재고가 음수가 되면 InsufficientStockException 발생
-        - reason은 아직 저장하지 않습니다. (재고 이력 기능은 추후 연결)
+        - 변경 내역을 재고 이력(stock_logs)에 기록합니다.
         """
         material = await self.get_material_by_id(material_id)
         new_stock = material.current_stock + quantity_change
@@ -82,7 +88,19 @@ class MaterialService:
                 required_stock=abs(quantity_change),
             )
         material.current_stock = new_stock
-        return await self.material_repo.save(material)
+        saved = await self.material_repo.save(material)
+
+        if self.stock_log_service:
+            await self.stock_log_service.log_change(
+                StockLogCreate(
+                    target_type="MATERIAL",
+                    target_id=str(material_id),
+                    change_type="INBOUND" if quantity_change > 0 else "OUTBOUND",
+                    quantity_change=quantity_change,
+                    reason=reason,
+                )
+            )
+        return saved
 
     # ------------------------------------------------------
 

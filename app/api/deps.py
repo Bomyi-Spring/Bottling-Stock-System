@@ -30,16 +30,20 @@ def get_stock_log_repository(
 
 
 # --- Services ---
-def get_material_service(
-    material_repo: SqlAlchemyMaterialRepository = Depends(get_material_repository),
-) -> MaterialService:
-    return MaterialService(material_repo=material_repo)
-
-
 def get_stock_log_service(
     stock_log_repo: SqlAlchemyStockLogRepository = Depends(get_stock_log_repository),
 ) -> StockLogService:
     return StockLogService(stock_log_repo=stock_log_repo)
+
+
+def get_material_service(
+    material_repo: SqlAlchemyMaterialRepository = Depends(get_material_repository),
+    stock_log_service: StockLogService = Depends(get_stock_log_service),
+) -> MaterialService:
+    return MaterialService(
+        material_repo=material_repo,
+        stock_log_service=stock_log_service,
+    )
 
 
 def get_product_service(

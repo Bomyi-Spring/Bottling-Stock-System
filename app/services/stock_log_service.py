@@ -79,3 +79,9 @@ class StockLogService:
             skip=skip,
             limit=limit,
         )
+
+    async def list_all_logs(self, skip: int = 0, limit: int = 100) -> List[StockLog]:
+        """
+        [전체 조회] 전체 재고 변동 이력을 최신순으로 조회합니다.
+        """
+        return await self.stock_log_repo.list_all(skip=skip, limit=limit)

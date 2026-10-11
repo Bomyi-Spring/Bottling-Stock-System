@@ -31,5 +31,9 @@ Base = declarative_base()
 # 4. DB 세션 의존성 주입 함수
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
-        yield session
-        
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise

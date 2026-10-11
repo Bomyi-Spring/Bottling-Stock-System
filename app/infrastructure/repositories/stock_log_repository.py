@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 from sqlalchemy import select
@@ -62,6 +63,30 @@ class SqlAlchemyStockLogRepository(StockLogRepositoryInterface):
         """
         stmt = (
             select(StockLogORM)
+            .order_by(StockLogORM.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        orm_list = result.scalars().all()
+        return [orm.to_domain() for orm in orm_list]
+
+    async def list_by_date_range(
+        self,
+        start_date: datetime,
+        end_date: datetime,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> List[StockLog]:
+        """
+        특정 기간(시작일~종료일) 동안 발생한 재고 변동 로그를 최신순으로 조회합니다.
+        """
+        stmt = (
+            select(StockLogORM)
+            .where(
+                StockLogORM.created_at >= start_date,
+                StockLogORM.created_at <= end_date,
+            )
             .order_by(StockLogORM.created_at.desc())
             .offset(skip)
             .limit(limit)

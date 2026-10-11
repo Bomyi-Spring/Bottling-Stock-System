@@ -57,14 +57,7 @@ async def create_product(
     신규 완제품 및 BOM(레시피) 정보를 등록합니다.
     """
     try:
-        product = await service.create_product(
-            sku=payload.sku,
-            name=payload.name,
-            category=payload.category,
-            current_stock=payload.current_stock,
-            price=payload.price,
-            recipe=payload.recipe,
-        )
+        product = await service.create_product(payload)
         return product
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

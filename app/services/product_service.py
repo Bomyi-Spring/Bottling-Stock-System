@@ -22,10 +22,12 @@ class ProductService:
         self,
         product_repo: ProductRepositoryInterface,
         material_repo: MaterialRepositoryInterface,
+        stock_log_service=None,  # 재고 이력 기록용 (추후 연결)
     ):
         # 완제품 리포지토리와 원자재 리포지토리를 모두 주입받아 조율(Orchestration)합니다.
         self.product_repo = product_repo
         self.material_repo = material_repo
+        self.stock_log_service = stock_log_service
 
     async def create_product(self, schema: ProductCreate) -> Product:
         """
@@ -88,18 +90,18 @@ class ProductService:
             if not material:
                 raise MaterialNotFoundException(material_id=mat_id)
 
-            # 원자재 재고 부족 검증 (서비스 계층의 에러 수호자 역할!)
+            # 원자재 재고 부족 검증
             if material.current_stock < required_total:
                 raise InsufficientStockException(
-                    item_name=material.name,
-                    required=required_total,
-                    current=material.current_stock,
+                    target_name=material.name,
+                    current_stock=material.current_stock,
+                    required_stock=required_total,
                 )
 
-            # 차감할 원자재 객체와 차감 후 수량을 임시 저장
+            # 차감할 원자재 객체와 차감량을 임시 저장
             materials_to_update.append((material, required_total))
 
-        # 3. 모든 원자재의 재고가 충분함이 확인되었으므로 actual 재고 차감 진행
+        # 3. 모든 원자재의 재고가 충분함이 확인되었으므로 실제 재고 차감 진행
         for material, required_total in materials_to_update:
             material.current_stock -= required_total
             await self.material_repo.save(material)

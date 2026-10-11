@@ -10,7 +10,7 @@ DATABASE_URL = settings.DATABASE_URL
 # 1. Async Engine 생성
 engine = create_async_engine(
     DATABASE_URL,
-    echo=True,
+    echo=False,
     pool_pre_ping=True,
     pool_size=10,
     max_overflow=20,

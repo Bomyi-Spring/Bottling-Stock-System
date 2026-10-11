@@ -131,7 +131,10 @@ async def delete_material(
     """
     원자재를 삭제합니다.
     """
-    success = await service.delete_material(material_id)
+    try:
+        success = await service.delete_material(material_id)
+    except MaterialNotFoundException as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

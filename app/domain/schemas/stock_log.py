@@ -1,23 +1,24 @@
-from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
+from typing import Optional
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
-# 1. 공통 속성을 담은 Base 스키마
 class StockLogBase(BaseModel):
     target_type: str = Field(..., description="대상 유형 (MATERIAL 또는 PRODUCT)")
-    target_id: int = Field(..., description="대상 원자재 또는 완제품 ID")
-    change_quantity: float = Field(..., description="변동 수량 (+100, -0.7 등)")
-    reason: str = Field(..., description="변동 사유 (PRODUCTION, INBOUND, DISPOSAL 등)")
+    target_id: str = Field(..., description="대상 원자재(int) 또는 완제품(UUID) ID 문자열")
+    change_type: str = Field(..., description="변동 유형 (INBOUND, OUTBOUND, PRODUCTION, ADJUSTMENT)")
+    quantity_change: float = Field(..., description="변동 수량 (+100, -0.7 등)")
+    reason: Optional[str] = Field(None, description="변동 사유 및 비고")
 
 
-# 2. 생성(Create) 요청 시 필요한 스키마
 class StockLogCreate(StockLogBase):
-    pass  # 로그 생성 시에는 Base 필드 그대로 사용
+    pass
 
 
-# 3. 클라이언트에 응답(Response)할 때 나가는 스키마
 class StockLogResponse(StockLogBase):
-    id: int
-    created_at: datetime  # 로그 생성 일시
+    id: UUID
+    created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

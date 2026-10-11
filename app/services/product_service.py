@@ -11,7 +11,7 @@ from app.domain.exceptions import (
 )
 from app.domain.repository_interfaces.product_repository import ProductRepositoryInterface
 from app.domain.repository_interfaces.material_repository import MaterialRepositoryInterface
-
+from app.domain.schemas.stock_log import StockLogCreate
 
 class ProductService:
     """
@@ -101,13 +101,33 @@ class ProductService:
             # 차감할 원자재 객체와 차감량을 임시 저장
             materials_to_update.append((material, required_total))
 
-        # 3. 모든 원자재의 재고가 충분함이 확인되었으므로 실제 재고 차감 진행
+               # 3. 모든 원자재의 재고가 충분함이 확인되었으므로 실제 재고 차감 진행
         for material, required_total in materials_to_update:
             material.current_stock -= required_total
             await self.material_repo.save(material)
+            if self.stock_log_service:
+                await self.stock_log_service.log_change(
+                    StockLogCreate(
+                        target_type="MATERIAL",
+                        target_id=str(material.id),
+                        change_type="PRODUCTION",
+                        quantity_change=-required_total,
+                        reason=f"{product.name} {quantity}개 생산에 사용",
+                    )
+                )
 
         # 4. 완제품 재고 수량 증가
         product.current_stock += quantity
         updated_product = await self.product_repo.save(product)
+        if self.stock_log_service:
+            await self.stock_log_service.log_change(
+                StockLogCreate(
+                    target_type="PRODUCT",
+                    target_id=str(product.id),
+                    change_type="PRODUCTION",
+                    quantity_change=float(quantity),
+                    reason=f"{product.name} {quantity}개 생산",
+                )
+            )
 
         return updated_product

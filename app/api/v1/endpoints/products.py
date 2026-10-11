@@ -4,6 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from app.api.deps import get_product_service
+from app.domain.exceptions import (
+    DuplicateSKUException,
+    InsufficientStockException,
+    MaterialNotFoundException,
+    ProductNotFoundException,
+)
 from app.services.product_service import ProductService
 
 
@@ -57,8 +63,9 @@ async def create_product(
     신규 완제품 및 BOM(레시피) 정보를 등록합니다.
     """
     try:
-        product = await service.create_product(payload)
-        return product
+        return await service.create_product(payload)
+    except DuplicateSKUException as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -72,7 +79,7 @@ async def list_products(
     """
     완제품 목록을 페이징하여 조회합니다.
     """
-    return await service.list_products(skip=skip, limit=limit)
+    return await service.get_all_products(skip=skip, limit=limit)
 
 
 @router.get("/{product_id}", response_model=ProductResponseSchema)
@@ -83,13 +90,10 @@ async def get_product(
     """
     UUID로 단일 완제품을 상세 조회합니다.
     """
-    product = await service.get_product(product_id)
-    if not product:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Product with ID {product_id} not found",
-        )
-    return product
+    try:
+        return await service.get_product_by_id(product_id)
+    except ProductNotFoundException as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
 @router.post("/{product_id}/produce", response_model=ProductResponseSchema)
@@ -102,19 +106,14 @@ async def produce_product(
     완제품 보틀링 생산을 실행합니다.
     - 레시피 비율에 따라 필요한 원자재 재고 수량을 자동으로 검증 및 차감합니다.
     - 완제품 재고 수량을 증가시킵니다.
-    - 원자재 차감 및 완제품 증가 내역을 StockLog에 원자적(Atomic)으로 기록합니다.
     """
     try:
-        updated_product = await service.produce(
+        return await service.produce_product(
             product_id=product_id,
             quantity=payload.quantity,
         )
-        if not updated_product:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Product with ID {product_id} not found",
-            )
-        return updated_product
-    except ValueError as e:
-        # 원자재 재고 부족 또는 존재하지 않는 원자재 ID 포함 시 예외 처리
+    except ProductNotFoundException as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except (MaterialNotFoundException, InsufficientStockException, ValueError) as e:
+        # 원자재 재고 부족 또는 존재하지 않는 원자재 ID
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

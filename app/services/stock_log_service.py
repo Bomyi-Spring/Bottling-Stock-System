@@ -45,7 +45,7 @@ class StockLogService:
     async def get_logs_by_target(
         self,
         target_type: str,
-        target_id: UUID,
+        target_id: str,
         skip: int = 0,
         limit: int = 100,
     ) -> List[StockLog]:
@@ -85,3 +85,20 @@ class StockLogService:
         [전체 조회] 전체 재고 변동 이력을 최신순으로 조회합니다.
         """
         return await self.stock_log_repo.list_all(skip=skip, limit=limit)
+
+    async def list_logs_by_target(
+        self,
+        target_type: str,
+        target_id: str,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> List[StockLog]:
+        """
+        [대상별 조회] API 엔드포인트가 부르는 이름입니다.
+        """
+        return await self.get_logs_by_target(
+            target_type=target_type,
+            target_id=target_id,
+            skip=skip,
+            limit=limit,
+        )
